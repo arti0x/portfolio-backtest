@@ -1,3 +1,9 @@
+##############
+#To use this backtest firstly look for tickers on yahoo finance.
+#Once you got them you can start using the backtest.
+##############
+
+
 #Importing all necessary libraries
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -1304,4 +1310,5 @@ class BacktestApp:
 if __name__ == "__main__":
     root = tk.Tk()
     app = BacktestApp(root)
+
     root.mainloop()
