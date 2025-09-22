@@ -65,7 +65,7 @@ THEMES = {
 # Default
 COLORS = THEMES['Dark'].copy()
 
-# Metric documentation for double-click info
+# Metric documentation and explanation for double-click info
 METRIC_DOCS = {
     'Total Return': "Total Return = (Final Value / Initial Capital) - 1.\n\nAggregate gain or loss over the period.",
     'CAGR': "CAGR = (1 + Total Return)^(252 / Ndays) - 1.\n\nCAGR stands for Compound Annual Growth Rate.\nThe steady annual growth rate that would lead to the same final value.",
@@ -126,7 +126,7 @@ def monthly_return_table(value_series: pd.Series):
     pivot = df.pivot(index='Year', columns='Month', values='Return')
     pivot = pivot.reindex(columns=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"])
     return pivot
-
+# Starting values for backtest
 class PortfolioBacktester:
     def __init__(self, tickers, weights=None, start=None, end=None, initial_capital=10000.0,
                  rebalance='Monthly', rebalance_n=None, benchmark=None, risk_free=0.02,
@@ -141,7 +141,8 @@ class PortfolioBacktester:
         self.benchmark = benchmark
         self.risk_free = float(risk_free)
         self.tx_cost_rate = (float(tx_cost_bps) + float(slippage_bps)) / 10000.0
-
+        
+        # Weights or autoadjust to equal
         if self.weights is not None:
             if len(self.weights) != len(self.tickers):
                 raise ValueError("Weights count must match number of tickers.")
@@ -151,7 +152,7 @@ class PortfolioBacktester:
             self.weights = self.weights / total  # normalize even if not exactly 1
         else:
             self.weights = np.ones(len(self.tickers)) / len(self.tickers)
-
+    # Downloading historical data
     def _download_prices(self, tickers):
         data = yf.download(tickers, start=self.start, end=self.end, progress=False, auto_adjust=False)
         try:
@@ -164,7 +165,7 @@ class PortfolioBacktester:
         if not isinstance(prices.index, pd.DatetimeIndex):
             prices.index = pd.to_datetime(prices.index)
         return prices
-
+    
     def _rebalance_flags(self, index, freq): #rebalancing
         n = len(index)
         flags = np.zeros(n, dtype=bool)
@@ -205,7 +206,7 @@ class PortfolioBacktester:
         tx_costs = pd.Series(0.0, index=idx, name='Tx Costs')
         turnover = pd.Series(0.0, index=idx, name='Turnover')
 
-        # Initial allocation with costs
+        # Initial allocation including costs
         initial_cost = self.initial_capital * self.tx_cost_rate
         capital_net = max(0.0, self.initial_capital - initial_cost)
         shares.iloc[0, :] = (capital_net * W) / prices.iloc[0, :].values
@@ -230,6 +231,7 @@ class PortfolioBacktester:
                 tx_costs.iloc[i] = 0.0
                 turnover.iloc[i] = 0.0
 
+        # portfolio
         value = (shares * prices).sum(axis=1)
         weights_over_time = (shares * prices).div(value, axis=0)
         return value, shares, weights_over_time, tx_costs, turnover
@@ -241,6 +243,7 @@ class PortfolioBacktester:
         port_value, shares, weights_ot, tx_costs, turnover = self._compute_portfolio_path(prices)
         port_rets = port_value.pct_change().dropna()
 
+        #Benchmark data
         bench_prices = bench_rets = None
         if self.benchmark and self.benchmark.strip():
             bench_prices = self._download_prices([self.benchmark]).iloc[:, 0]
@@ -377,7 +380,7 @@ class BacktestApp:
         self._apply_mpl_theme(self.font_family)
 
         self._build_ui()
-
+ # Font and theme
     def _choose_font_family(self):
         families = set(tkfont.families())
         if "Aptos" in families:
@@ -473,7 +476,7 @@ class BacktestApp:
         ctrl.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
         ctrl.configure(style="TLabelframe")
 
-        # Inputs
+        # Inputs at start
         self.var_tickers = tk.StringVar(value="AAPL,MSFT,GOOGL")
         self.var_weights = tk.StringVar(value="")
         self.var_start = tk.StringVar(value="2018-01-01")
@@ -481,7 +484,7 @@ class BacktestApp:
         self.var_capital = tk.StringVar(value="100000")
         self.var_rebalance = tk.StringVar(value="Monthly")
         self.var_rebalance_n = tk.StringVar(value="")
-        self.var_benchmark = tk.StringVar(value="^GSPC") #This is the ticker of S&P500 index, the user can change to whatever index wants
+        self.var_benchmark = tk.StringVar(value="^GSPC") #This is the ticker of S&P500 index, the user can change to whatever index wants. Look on yahoo finance
         self.var_rf = tk.StringVar(value="0.02")
         self.var_logscale = tk.BooleanVar(value=False)
         self.var_theme = tk.StringVar(value=self.theme_name)
@@ -740,6 +743,7 @@ class BacktestApp:
             self.status.config(text=f"Error: {e}")
             messagebox.showerror("Error", str(e))
 
+    # Print all the results of the metrics
     def _populate_summary(self, result):
         for i in self.metrics_tree.get_children():
             self.metrics_tree.delete(i)
@@ -788,6 +792,7 @@ class BacktestApp:
                         tags = ('neg',) if v < 0 else ()
                 self.metrics_tree.insert('', tk.END, values=(k, display), tags=tags)
 
+        #Contribution of the single stocks
         contrib = result['contributions']
         for asset, val in contrib.items():
             tag = 'pos' if val >= 0 else 'neg'
@@ -833,6 +838,7 @@ class BacktestApp:
         ax.yaxis.label.set_color(COLORS['text'])
         ax.xaxis.label.set_color(COLORS['text'])
 
+    #COmparison bewteen index and portfolio
     def _draw_charts(self, result):
         self._destroy_canvas(self.canvas_charts, self.toolbar_charts)
 
@@ -874,6 +880,7 @@ class BacktestApp:
         self.toolbar_charts = NavigationToolbar2Tk(self.canvas_charts, self.tab_charts)
         self.toolbar_charts.update()
 
+    # Rolling risk
     def _draw_rolling(self, result):
         self._destroy_canvas(self.canvas_rolling, self.toolbar_rolling)
 
@@ -912,6 +919,7 @@ class BacktestApp:
         self.toolbar_rolling = NavigationToolbar2Tk(self.canvas_rolling, self.tab_rolling)
         self.toolbar_rolling.update()
 
+    # Correlation between stocks
     def _draw_corr(self, result):
         self._destroy_canvas(self.canvas_corr, self.toolbar_corr)
 
@@ -939,6 +947,7 @@ class BacktestApp:
         self.toolbar_corr = NavigationToolbar2Tk(self.canvas_corr, self.tab_corr)
         self.toolbar_corr.update()
 
+    #Montly returns
     def _draw_monthly(self, result):
         self._destroy_canvas(self.canvas_monthly, self.toolbar_monthly)
 
@@ -964,7 +973,7 @@ class BacktestApp:
         self.toolbar_monthly = NavigationToolbar2Tk(self.canvas_monthly, self.tab_monthly)
         self.toolbar_monthly.update()
 
-    # ===== Metrics info (double-click) =====
+    # Metrics info, user must double-click
     def on_metric_double_click(self, event):
         item_id = self.metrics_tree.identify_row(event.y)
         if not item_id:
@@ -996,7 +1005,7 @@ class BacktestApp:
         btn = ttk.Button(top, text="Close", command=top.destroy, style="Accent.TButton")
         btn.pack(pady=10)
 
-    # ===== Monte Carlo =====
+    # Monte Carlo simulation
     def run_mc_simulation(self):
         if not self.last_result:
             messagebox.showinfo("Monte Carlo Simulation", "Run a backtest first.")
@@ -1129,6 +1138,7 @@ class BacktestApp:
         self.toolbar_mc = NavigationToolbar2Tk(self.canvas_mc, self.tab_mc)
         self.toolbar_mc.update()
 
+    # Command to export on excel the portfolio history, main metrics and MC simulation
     def export_to_excel(self):
         if not self.last_result:
             messagebox.showinfo("Export to Excel", "Run a backtest first.")
@@ -1190,7 +1200,7 @@ class BacktestApp:
             metrics_items = [(k, metrics[k]) for k in metrics_order if k in metrics]
 
             with pd.ExcelWriter(path, engine='xlsxwriter', datetime_format='yyyy-mm-dd', date_format='yyyy-mm-dd') as writer:
-                # Sheet 1: History
+                # Sheet 1: Portfolios history
                 hist_df.to_excel(writer, sheet_name='Portfolio_History', index=False)
                 wb = writer.book
                 ws_hist = writer.sheets['Portfolio_History']
@@ -1249,7 +1259,7 @@ class BacktestApp:
                 ws_met.set_column(1, 1, 22)
                 ws_met.freeze_panes(1, 0)
 
-                # Sheet 3: Monte Carlo (if available)
+                # Sheet 3: Monte Carlo, it appears only if the user generates it
                 if self.last_mc:
                     ws_mc = wb.add_worksheet('Monte_Carlo')
                     ws_mc.set_row(0, 20, fmt_hdr)
@@ -1312,3 +1322,4 @@ if __name__ == "__main__":
     app = BacktestApp(root)
 
     root.mainloop()
+
