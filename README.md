@@ -1,2 +1,18 @@
 # portfolio-backtest
-This code allow finance enjoyers to backtest their own portfolio using yfinance library. There six tabs where you can find a brief summary, drawdowns, rolling risk, correlation, monthly return map and Monte Carlo simulation. Those tabs allow the user to get the most out of the backtest.
+This project allows users to backtest their own portfolios using the yfinance library.
+
+It includes six interactive tabs that provide:
+
+Summary: Key portfolio metrics and performance overview
+
+Drawdowns: Visualization of portfolio drawdowns
+
+Rolling Risk: Rolling volatility and risk measures
+
+Correlation: Heatmap of asset correlations
+
+Monthly Returns: Calendar-style view of monthly returns
+
+Monte Carlo Simulation: Portfolio return simulations for future scenarios
+
+These features give users a comprehensive view of portfolio performance and risk, enabling deeper analysis and better decision-making.
